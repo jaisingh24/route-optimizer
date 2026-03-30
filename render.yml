@@ -1,6 +1,6 @@
 services:
   - type: web
     name: route-optimizer
-    env: java
+    env: docker
     buildCommand: mvn clean package
     startCommand: java -jar target/*.jar
