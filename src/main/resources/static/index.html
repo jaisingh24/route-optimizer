@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Route Optimizer</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+        }
+
+        #map {
+            height: 500px;
+            margin-top: 10px;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        select, button {
+            padding: 8px;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        #distanceText {
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+<h2> Jaipur Route Optimizer</h2>
+
+<div class="controls">
+    <select id="from">
+        <option value="Hawa Mahal">Hawa Mahal</option>
+        <option value="City Palace">City Palace</option>
+        <option value="Jal Mahal">Jal Mahal</option>
+        <option value="Amber Fort">Amber Fort</option>
+        <option value="Airport">Airport</option>
+    </select>
+
+    <select id="to">
+        <option value="Airport">Airport</option>
+        <option value="Amber Fort">Amber Fort</option>
+        <option value="Jal Mahal">Jal Mahal</option>
+        <option value="City Palace">City Palace</option>
+        <option value="Hawa Mahal">Hawa Mahal</option>
+    </select>
+
+    <button onclick="loadRoute()">Find Route</button>
+</div>
+
+<!-- Distance display -->
+<p id="distanceText"></p>
+
+<div id="map"></div>
+
+<script>
+    // Initialize map
+    var map = L.map('map').setView([26.9124, 75.7873], 12);
+
+    // Load OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let markers = [];
+    let polyline = null;
+
+    async function loadRoute() {
+
+        let from = document.getElementById("from").value;
+        let to = document.getElementById("to").value;
+
+        const url = `/api/route?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+
+        try {
+            const response = await fetch(url);
+            const result = await response.json();
+
+            let data = result.path;
+            let distance = result.distance;
+
+            console.log("Route:", data);
+            console.log("Distance:", distance);
+
+            // Show distance
+            document.getElementById("distanceText").innerText =
+                "Distance: " + distance.toFixed(2) + " km";
+
+            // Clear old markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            // Clear old route
+            if (polyline) {
+                map.removeLayer(polyline);
+            }
+
+            let latlngs = [];
+
+            data.forEach(node => {
+                let point = [node.x, node.y];
+                latlngs.push(point);
+
+                let marker = L.marker(point)
+                    .addTo(map)
+                    .bindPopup(node.name);
+
+                markers.push(marker);
+            });
+
+            // Draw route
+            polyline = L.polyline(latlngs, {
+                color: 'blue',
+                weight: 5,
+                smoothFactor: 1.5
+            }).addTo(map);
+
+            // Fit map to route
+            map.fitBounds(polyline.getBounds());
+
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Failed to load route");
+        }
+    }
+</script>
+
+</body>
+</html>
